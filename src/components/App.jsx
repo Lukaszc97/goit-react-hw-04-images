@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import Searchbar from './Searchbar/Searchbar';
 import ImageGallery from './ImageGallery/ImageGallery';
@@ -9,34 +9,31 @@ import Modal from './Modal/Modal';
 
 const API_KEY = '38011218-cb164cf0dde7e2df63faecdfa';
 
-class App extends Component {
-  state = {
-    query: '',
-    images: [],
-    page: 1,
-    isLoading: false,
-    showModal: false,
-    modalImageSrc: '',
-    allImagesLoaded: false,
-  };
+function App() {
+  const [query, setQuery] = useState('');
+  const [images, setImages] = useState([]);
+  const [page, setPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [modalImageSrc, setModalImageSrc] = useState('');
+  const [allImagesLoaded, setAllImagesLoaded] = useState(false);
 
-  handleSubmit = query => {
-    this.setState(
-      { query, images: [], page: 1, allImagesLoaded: false },
-      this.fetchImages
-    );
-  };
+  const handleSubmit = useCallback(newQuery => {
+    setQuery(newQuery);
+    setImages([]);
+    setPage(1);
+    setAllImagesLoaded(false);
+    fetchImages();
+  }, []);
 
-  fetchImages = () => {
-    const { query, page, images, allImagesLoaded } = this.state;
-
+  const fetchImages = useCallback(() => {
     if (allImagesLoaded) {
       return;
     }
 
     const URL = `https://pixabay.com/api/?q=${query}&page=${page}&key=${API_KEY}&image_type=photo&orientation=horizontal&per_page=12`;
 
-    this.setState({ isLoading: true });
+    setIsLoading(true);
 
     axios
       .get(URL)
@@ -46,59 +43,56 @@ class App extends Component {
         );
 
         if (newImages.length === 0) {
-          this.setState({ allImagesLoaded: true });
+          setAllImagesLoaded(true);
           return;
         }
 
-        this.setState(prevState => ({
-          images: [...prevState.images, ...newImages],
-          page: prevState.page + 1,
-        }));
+        setImages(prevImages => [...prevImages, ...newImages]);
+        setPage(prevPage => prevPage + 1);
       })
       .catch(error => console.error(error))
       .finally(() => {
-        this.setState({ isLoading: false });
+        setIsLoading(false);
       });
-  };
+  }, [query, page, images, allImagesLoaded]);
 
-  openModal = src => {
-    this.setState({ showModal: true, modalImageSrc: src });
-  };
+  const openModal = useCallback(src => {
+    setShowModal(true);
+    setModalImageSrc(src);
+  }, []);
 
-  closeModal = () => {
-    this.setState({ showModal: false });
-  };
+  const closeModal = useCallback(() => {
+    setShowModal(false);
+  }, []);
 
-  render() {
-    const { images, isLoading, showModal, modalImageSrc } = this.state;
+  useEffect(() => {
+    if (query) {
+      fetchImages();
+    }
+  }, [query, fetchImages]);
 
-    return (
-      <div className="App">
-        <Searchbar onSubmit={this.handleSubmit} />
-        <ImageGallery>
-          {images.map(image => (
-            <ImageGalleryItem
-              key={image.id}
-              src={image.webformatURL}
-              alt={image.tags}
-              onClick={() => this.openModal(image.largeImageURL)}
-            />
-          ))}
-        </ImageGallery>
-        {isLoading && <Loader />}
-        {images.length > 0 && !isLoading && !this.state.allImagesLoaded && (
-          <Button onClick={this.fetchImages} disabled={isLoading} />
-        )}
-        {showModal && (
-          <Modal
-            src={modalImageSrc}
-            alt="Large Image"
-            onClose={this.closeModal}
+  return (
+    <div className="App">
+      <Searchbar onSubmit={handleSubmit} />
+      <ImageGallery>
+        {images.map(image => (
+          <ImageGalleryItem
+            key={image.id}
+            src={image.webformatURL}
+            alt={image.tags}
+            onClick={() => openModal(image.largeImageURL)}
           />
-        )}
-      </div>
-    );
-  }
+        ))}
+      </ImageGallery>
+      {isLoading && <Loader />}
+      {images.length > 0 && !isLoading && !allImagesLoaded && (
+        <Button onClick={fetchImages} disabled={isLoading} />
+      )}
+      {showModal && (
+        <Modal src={modalImageSrc} alt="Large Image" onClose={closeModal} />
+      )}
+    </div>
+  );
 }
 
 export default App;
