@@ -18,43 +18,47 @@ function App() {
   const [modalImageSrc, setModalImageSrc] = useState('');
   const [allImagesLoaded, setAllImagesLoaded] = useState(false);
 
-  const handleSubmit = useCallback(newQuery => {
-    setQuery(newQuery);
-    setImages([]);
-    setPage(1);
-    setAllImagesLoaded(false);
-    fetchImages();
-  }, []);
+  const fetchImages = useCallback(
+    (fetchQuery, fetchPage) => {
+      if (allImagesLoaded) {
+        return;
+      }
 
-  const fetchImages = useCallback(() => {
-    if (allImagesLoaded) {
-      return;
-    }
+      const URL = `https://pixabay.com/api/?q=${fetchQuery}&page=${fetchPage}&key=${API_KEY}&image_type=photo&orientation=horizontal&per_page=12`;
 
-    const URL = `https://pixabay.com/api/?q=${query}&page=${page}&key=${API_KEY}&image_type=photo&orientation=horizontal&per_page=12`;
+      setIsLoading(true);
 
-    setIsLoading(true);
+      axios
+        .get(URL)
+        .then(response => {
+          const newImages = response.data.hits;
 
-    axios
-      .get(URL)
-      .then(response => {
-        const newImages = response.data.hits.filter(
-          image => !images.includes(image)
-        );
+          if (newImages.length === 0) {
+            setAllImagesLoaded(true);
+            return;
+          }
 
-        if (newImages.length === 0) {
-          setAllImagesLoaded(true);
-          return;
-        }
+          setImages(prevImages => [...prevImages, ...newImages]);
+          setPage(prevPage => prevPage + 1);
+        })
+        .catch(error => console.error(error))
+        .finally(() => {
+          setIsLoading(false);
+        });
+    },
+    [allImagesLoaded]
+  );
 
-        setImages(prevImages => [...prevImages, ...newImages]);
-        setPage(prevPage => prevPage + 1);
-      })
-      .catch(error => console.error(error))
-      .finally(() => {
-        setIsLoading(false);
-      });
-  }, [query, page, images, allImagesLoaded]);
+  const handleSubmit = useCallback(
+    newQuery => {
+      setQuery(newQuery);
+      setImages([]);
+      setPage(1);
+      setAllImagesLoaded(false);
+      fetchImages(newQuery, 1);
+    },
+    [fetchImages]
+  );
 
   const openModal = useCallback(src => {
     setShowModal(true);
@@ -67,9 +71,9 @@ function App() {
 
   useEffect(() => {
     if (query) {
-      fetchImages();
+      fetchImages(query, page);
     }
-  }, [query, fetchImages]);
+  }, [query, page, fetchImages]);
 
   return (
     <div className="App">
@@ -86,7 +90,7 @@ function App() {
       </ImageGallery>
       {isLoading && <Loader />}
       {images.length > 0 && !isLoading && !allImagesLoaded && (
-        <Button onClick={fetchImages} disabled={isLoading} />
+        <Button onClick={() => fetchImages(query, page)} disabled={isLoading} />
       )}
       {showModal && (
         <Modal src={modalImageSrc} alt="Large Image" onClose={closeModal} />
