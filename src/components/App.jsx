@@ -10,7 +10,7 @@ import Modal from './Modal/Modal';
 const API_KEY = '38011218-cb164cf0dde7e2df63faecdfa';
 
 function App() {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(localStorage.getItem('lastQuery') || '');
   const [images, setImages] = useState([]);
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -52,6 +52,7 @@ function App() {
   const handleSubmit = useCallback(
     newQuery => {
       setQuery(newQuery);
+      localStorage.setItem('lastQuery', newQuery); // Zapisz zapytanie w localStorage
       setImages([]);
       setPage(1);
       setAllImagesLoaded(false);
