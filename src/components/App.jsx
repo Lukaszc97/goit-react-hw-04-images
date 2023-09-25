@@ -16,51 +16,48 @@ function App() {
   const [modalImageSrc, setModalImageSrc] = useState('');
   const [allImagesLoaded, setAllImagesLoaded] = useState(false);
 
-  useEffect(() => {
-    if (!query) {
-      return;
-    }
-
-    fetchImages(query, page)
-      .then((data) => {
-        const newImages = data.hits.filter(
-          (image) => !images.some((existingImage) => existingImage.id === image.id)
-        );
-
-        if (newImages.length === 0) {
-          setAllImagesLoaded(true);
-          return;
-        }
-
-        setImages((prevImages) => [...prevImages, ...newImages]);
-        setPage((prevPage) => prevPage + 1);
-      })
-      .catch((error) => console.error(error))
-      .finally(() => setIsLoading(false));
-  }, [query, page, images]);
-
-  const handleSubmit = (newQuery) => {
+  const handleSubmit = newQuery => {
     setQuery(newQuery);
     setImages([]);
     setPage(1);
     setAllImagesLoaded(false);
   };
 
-  const openModal = (src) => {
+  useEffect(() => {
+    if (!query) return;
+
+    setIsLoading(true);
+
+    fetchImages(query, page)
+      .then(data => {
+        if (data.hits.length === 0) {
+          setAllImagesLoaded(true);
+          return;
+        }
+
+        setImages(prevImages => [...prevImages, ...data.hits]);
+        setPage(prevPage => prevPage + 1);
+      })
+      .catch(error => console.error(error))
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, [query, page]);
+
+  const openModal = src => {
     setShowModal(true);
     setModalImageSrc(src);
   };
 
   const closeModal = () => {
     setShowModal(false);
-    setModalImageSrc('');
   };
 
   return (
     <div className="App">
       <Searchbar onSubmit={handleSubmit} />
       <ImageGallery>
-        {images.map((image) => (
+        {images.map(image => (
           <ImageGalleryItem
             key={image.id}
             src={image.webformatURL}
@@ -71,7 +68,7 @@ function App() {
       </ImageGallery>
       {isLoading && <Loader />}
       {images.length > 0 && !isLoading && !allImagesLoaded && (
-        <Button onClick={() => setIsLoading(true)} disabled={isLoading} />
+        <Button onClick={() => setPage(page + 1)} disabled={isLoading} />
       )}
 
       {allImagesLoaded ? (
@@ -81,7 +78,11 @@ function App() {
       )}
 
       {showModal && (
-        <Modal src={modalImageSrc} alt="Large Image" onClose={closeModal} />
+        <Modal
+          src={modalImageSrc}
+          alt="Large Image"
+          onClose={closeModal}
+        />
       )}
     </div>
   );
