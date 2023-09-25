@@ -24,9 +24,9 @@ function App() {
   }, []);
 
   const handleSubmit = newQuery => {
+    setQuery(newQuery);
     setImages([]);
     setPage(1);
-    setQuery(newQuery);
     setAllImagesLoaded(false);
    
     fetchImages(newQuery)
@@ -34,7 +34,7 @@ function App() {
         const newImages = data.hits;
         setImages(newImages);
         localStorage.setItem('lastQuery', newQuery);
-        
+       
       })
       .catch(error => console.error(error));
   };
