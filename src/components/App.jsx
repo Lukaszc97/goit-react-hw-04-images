@@ -14,7 +14,8 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [modalImageSrc, setModalImageSrc] = useState('');
-  const [allImagesLoaded, setAllImagesLoaded] = useState(false);
+  const [totalHits, setTotalHits] = useState(0);
+  
 
   useEffect(() => {
     const savedQuery = localStorage.getItem('lastQuery');
@@ -27,14 +28,14 @@ function App() {
     setQuery(newQuery);
     setImages([]);
     setPage(1);
-    setAllImagesLoaded(false);
    
+
     fetchImages(newQuery)
       .then(data => {
         const newImages = data.hits;
         setImages(newImages);
+        setTotalHits(data.totalHits);
         localStorage.setItem('lastQuery', newQuery);
-       
       })
       .catch(error => console.error(error));
   };
@@ -45,7 +46,7 @@ function App() {
       .then(data => {
         const newImages = data.hits;
         if (newImages.length === 0) {
-          setAllImagesLoaded(true);
+          
           setIsLoading(false);
           return;
         }
@@ -57,7 +58,6 @@ function App() {
         setIsLoading(false);
       });
   };
-  
 
   const openModal = src => {
     setShowModal(true);
@@ -87,15 +87,14 @@ function App() {
           />
         ))}
       </ImageGallery>
-      {isLoading && <Loader />}
-      {images.length > 0 && !isLoading && !allImagesLoaded && (
-        <Button onClick={fetchMoreImages} disabled={isLoading} />
-      )}
-
-      {allImagesLoaded ? (
-        <p style={{ textAlign: 'center' }}>All images loaded.</p>
+      {totalHits > images.length ? (
+        isLoading ? (
+          <Loader />
+        ) : (
+          <Button onClick={fetchMoreImages} disabled={isLoading} />
+        )
       ) : (
-        isLoading && <Loader />
+        <p style={{ textAlign: 'center' }}>All images loaded.</p>
       )}
 
       {showModal && (
