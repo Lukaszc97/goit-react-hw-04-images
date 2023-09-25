@@ -21,28 +21,43 @@ function App() {
     setImages([]);
     setPage(1);
     setAllImagesLoaded(false);
+    fetchImages(newQuery, 1)
+      .then(data => {
+        setImages(data.hits);
+        setPage(2);
+      })
+      .catch(error => console.error(error))
+      .finally(() => {
+        setIsLoading(false);
+      });
   };
 
-  useEffect(() => {
-    if (!query) return;
+  const fetchMoreImages = () => {
+    if (allImagesLoaded || isLoading) {
+      return;
+    }
 
     setIsLoading(true);
 
     fetchImages(query, page)
       .then(data => {
-        if (data.hits.length === 0) {
+        const newImages = data.hits.filter(image =>
+          !images.some(existingImage => existingImage.id === image.id)
+        );
+
+        if (newImages.length === 0) {
           setAllImagesLoaded(true);
           return;
         }
 
-        setImages(prevImages => [...prevImages, ...data.hits]);
+        setImages(prevImages => [...prevImages, ...newImages]);
         setPage(prevPage => prevPage + 1);
       })
       .catch(error => console.error(error))
       .finally(() => {
         setIsLoading(false);
       });
-  }, [query, page]);
+  };
 
   const openModal = src => {
     setShowModal(true);
@@ -52,6 +67,12 @@ function App() {
   const closeModal = () => {
     setShowModal(false);
   };
+
+  useEffect(() => {
+    if (query) {
+      handleSubmit(query);
+    }
+  }, [query]);
 
   return (
     <div className="App">
@@ -68,7 +89,7 @@ function App() {
       </ImageGallery>
       {isLoading && <Loader />}
       {images.length > 0 && !isLoading && !allImagesLoaded && (
-        <Button onClick={() => setPage(page + 1)} disabled={isLoading} />
+        <Button onClick={fetchMoreImages} disabled={isLoading} />
       )}
 
       {allImagesLoaded ? (

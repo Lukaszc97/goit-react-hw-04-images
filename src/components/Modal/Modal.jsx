@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import styles from './Modal.module.css';
 
-function Modal({ onClose, src, alt }) {
+const Modal = ({ onClose, src, alt }) => {
   useEffect(() => {
     document.body.classList.add('modal-open');
     return () => {
@@ -16,6 +16,6 @@ function Modal({ onClose, src, alt }) {
       </div>
     </div>
   );
-}
+};
 
 export default Modal;
