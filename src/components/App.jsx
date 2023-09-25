@@ -8,58 +8,53 @@ import Modal from './Modal/Modal';
 import { fetchImages } from './api';
 
 function App() {
-  const [images, setImages] = useState([]);
   const [query, setQuery] = useState('');
+  const [images, setImages] = useState([]);
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [modalImageSrc, setModalImageSrc] = useState('');
   const [allImagesLoaded, setAllImagesLoaded] = useState(false);
 
-  useEffect(() => {
-    const savedQuery = localStorage.getItem('lastQuery');
-    if (savedQuery) {
-      setQuery(savedQuery);
-    }
-  }, []);
-
-  const handleSubmit = newQuery => {
+  const handleSubmit = (newQuery) => {
     setQuery(newQuery);
     setImages([]);
     setPage(1);
     setAllImagesLoaded(false);
-   
-    fetchImages(newQuery)
-      .then(data => {
-        const newImages = data.hits;
-        setImages(newImages);
-        localStorage.setItem('lastQuery', newQuery);
-       
+    fetchImages(newQuery, 1)
+      .then((data) => {
+        setImages(data.hits);
+        setPage(2);
       })
-      .catch(error => console.error(error));
+      .catch((error) => console.error(error));
   };
 
   const fetchMoreImages = () => {
+    if (allImagesLoaded) {
+      return;
+    }
     setIsLoading(true);
     fetchImages(query, page)
-      .then(data => {
-        const newImages = data.hits;
+      .then((data) => {
+        const newImages = data.hits.filter(
+          (image) => !images.some((img) => img.id === image.id)
+        );
+
         if (newImages.length === 0) {
           setAllImagesLoaded(true);
-          setIsLoading(false);
           return;
         }
-        setImages(prevImages => [...prevImages, ...newImages]);
-        setPage(prevPage => prevPage + 1);
+
+        setImages((prevImages) => [...prevImages, ...newImages]);
+        setPage((prevPage) => prevPage + 1);
       })
-      .catch(error => console.error(error))
+      .catch((error) => console.error(error))
       .finally(() => {
         setIsLoading(false);
       });
   };
-  
 
-  const openModal = src => {
+  const openModal = (src) => {
     setShowModal(true);
     setModalImageSrc(src);
   };
@@ -69,18 +64,16 @@ function App() {
   };
 
   useEffect(() => {
-    if (query === '') {
-      return;
+    if (query !== '') {
+      handleSubmit(query);
     }
-
-    fetchMoreImages();
   }, [query]);
 
   return (
     <div className="App">
       <Searchbar onSubmit={handleSubmit} />
       <ImageGallery>
-        {images.map(image => (
+        {images.map((image) => (
           <ImageGalleryItem
             key={image.id}
             src={image.webformatURL}
@@ -101,11 +94,7 @@ function App() {
       )}
 
       {showModal && (
-        <Modal
-          src={modalImageSrc}
-          alt="Large Image"
-          onClose={closeModal}
-        />
+        <Modal src={modalImageSrc} alt="Large Image" onClose={closeModal} />
       )}
     </div>
   );

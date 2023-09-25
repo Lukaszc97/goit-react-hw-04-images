@@ -4,11 +4,11 @@ import styles from './Searchbar.module.css';
 function Searchbar({ onSubmit }) {
   const [query, setQuery] = useState('');
 
-  const handleChange = e => {
+  const handleChange = (e) => {
     setQuery(e.target.value);
   };
 
-  const handleSubmit = e => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit(query);
     setQuery('');
