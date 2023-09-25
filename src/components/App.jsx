@@ -32,6 +32,7 @@ function App() {
 
     fetchImages(newQuery)
       .then(data => {
+        
         const newImages = data.hits;
         setImages(newImages);
         setTotalHits(data.totalHits);
@@ -42,7 +43,7 @@ function App() {
 
   const fetchMoreImages = () => {
     setIsLoading(true);
-    fetchImages(query, page)
+    fetchImages(query, page+1)
       .then(data => {
         const newImages = data.hits;
         if (newImages.length === 0) {
@@ -50,8 +51,10 @@ function App() {
           setIsLoading(false);
           return;
         }
+        
         setImages(prevImages => [...prevImages, ...newImages]);
-        setPage(prevPage => prevPage + 1);
+        setPage(prevPage => prevPage + 1)
+        console.log("próba");
       })
       .catch(error => console.error(error))
       .finally(() => {
