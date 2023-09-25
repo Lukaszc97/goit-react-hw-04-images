@@ -54,7 +54,7 @@ function App() {
         
         setImages(prevImages => [...prevImages, ...newImages]);
         setPage(prevPage => prevPage + 1)
-        console.log("próba");
+        
       })
       .catch(error => console.error(error))
       .finally(() => {
