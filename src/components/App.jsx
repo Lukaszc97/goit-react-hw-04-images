@@ -69,11 +69,9 @@ function App() {
   };
 
   useEffect(() => {
-    if (query === '') {
-      return;
+    if (query !== '') {
+      handleSubmit(query);
     }
-
-    fetchMoreImages();
   }, [query]);
 
   return (
