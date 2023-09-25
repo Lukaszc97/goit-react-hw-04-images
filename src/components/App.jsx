@@ -1,103 +1,103 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import React, { Component } from 'react';
 import Searchbar from './Searchbar/Searchbar';
 import ImageGallery from './ImageGallery/ImageGallery';
 import ImageGalleryItem from './ImageGalleryItem/ImageGalleryItem';
 import Button from './Button/Button';
 import Loader from './Loader/Loader';
 import Modal from './Modal/Modal';
+import { fetchImages } from './api';
 
-const API_KEY = '38011218-cb164cf0dde7e2df63faecdfa';
+class App extends Component {
+  state = {
+    query: '',
+    images: [],
+    page: 1,
+    isLoading: false,
+    showModal: false,
+    modalImageSrc: '',
+    allImagesLoaded: false,
+  };
 
-function App() {
-  const [query, setQuery] = useState(localStorage.getItem('lastQuery') || '');
-  const [images, setImages] = useState([]);
-  const [page, setPage] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [modalImageSrc, setModalImageSrc] = useState('');
-  const [allImagesLoaded, setAllImagesLoaded] = useState(false);
+  handleSubmit = query => {
+    this.setState(
+      { query, images: [], page: 1, allImagesLoaded: false },
+      this.fetchImages
+    );
+  };
 
-  const fetchImages = useCallback(
-    (fetchQuery, fetchPage) => {
-      if (allImagesLoaded) {
-        return;
-      }
+  fetchImages = () => {
+    const { query, page, images, allImagesLoaded } = this.state;
 
-      const URL = `https://pixabay.com/api/?q=${fetchQuery}&page=${fetchPage}&key=${API_KEY}&image_type=photo&orientation=horizontal&per_page=12`;
-
-      setIsLoading(true);
-
-      axios
-        .get(URL)
-        .then(response => {
-          const newImages = response.data.hits;
-
-          if (newImages.length === 0) {
-            setAllImagesLoaded(true);
-            return;
-          }
-
-          setImages(prevImages => [...prevImages, ...newImages]);
-          setPage(prevPage => prevPage + 1);
-        })
-        .catch(error => console.error(error))
-        .finally(() => {
-          setIsLoading(false);
-        });
-    },
-    [allImagesLoaded]
-  );
-
-  const handleSubmit = useCallback(
-    newQuery => {
-      setQuery(newQuery);
-      localStorage.setItem('lastQuery', newQuery); // Zapisz zapytanie w localStorage
-      setImages([]);
-      setPage(1);
-      setAllImagesLoaded(false);
-      fetchImages(newQuery, 1);
-    },
-    [fetchImages]
-  );
-
-  const openModal = useCallback(src => {
-    setShowModal(true);
-    setModalImageSrc(src);
-  }, []);
-
-  const closeModal = useCallback(() => {
-    setShowModal(false);
-  }, []);
-
-  useEffect(() => {
-    if (query) {
-      fetchImages(query, page);
+    if (allImagesLoaded) {
+      return;
     }
-  }, [query, page, fetchImages]);
 
-  return (
-    <div className="App">
-      <Searchbar onSubmit={handleSubmit} />
-      <ImageGallery>
-        {images.map(image => (
-          <ImageGalleryItem
-            key={image.id}
-            src={image.webformatURL}
-            alt={image.tags}
-            onClick={() => openModal(image.largeImageURL)}
+    fetchImages(query, page)
+      .then(data => {
+        const newImages = data.hits.filter(image => !images.includes(image));
+
+        if (newImages.length === 0) {
+          this.setState({ allImagesLoaded: true });
+          return;
+        }
+
+        this.setState(prevState => ({
+          images: [...prevState.images, ...newImages],
+          page: prevState.page + 1,
+        }));
+      })
+      .catch(error => console.error(error))
+      .finally(() => {
+        this.setState({ isLoading: false });
+      });
+  };
+
+  openModal = src => {
+    this.setState({ showModal: true, modalImageSrc: src });
+  };
+
+  closeModal = () => {
+    this.setState({ showModal: false });
+  };
+
+  render() {
+    const { images, isLoading, showModal, modalImageSrc, allImagesLoaded } =
+      this.state;
+
+    return (
+      <div className="App">
+        <Searchbar onSubmit={this.handleSubmit} />
+        <ImageGallery>
+          {images.map(image => (
+            <ImageGalleryItem
+              key={image.id}
+              src={image.webformatURL}
+              alt={image.tags}
+              onClick={() => this.openModal(image.largeImageURL)}
+            />
+          ))}
+        </ImageGallery>
+        {isLoading && <Loader />}
+        {images.length > 0 && !isLoading && !allImagesLoaded && (
+          <Button onClick={this.fetchImages} disabled={isLoading} />
+        )}
+
+        {allImagesLoaded ? (
+          <p style={{ textAlign: 'center' }}>All images loaded.</p>
+        ) : (
+          isLoading && <Loader />
+        )}
+
+        {showModal && (
+          <Modal
+            src={modalImageSrc}
+            alt="Large Image"
+            onClose={this.closeModal}
           />
-        ))}
-      </ImageGallery>
-      {isLoading && <Loader />}
-      {images.length > 0 && !isLoading && !allImagesLoaded && (
-        <Button onClick={() => fetchImages(query, page)} disabled={isLoading} />
-      )}
-      {showModal && (
-        <Modal src={modalImageSrc} alt="Large Image" onClose={closeModal} />
-      )}
-    </div>
-  );
+        )}
+      </div>
+    );
+  }
 }
 
 export default App;
