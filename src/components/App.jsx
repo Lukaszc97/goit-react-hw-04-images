@@ -8,48 +8,47 @@ import Modal from './Modal/Modal';
 import { fetchImages } from './api';
 
 function App() {
-  const [query, setQuery] = useState('');
   const [images, setImages] = useState([]);
+  const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [modalImageSrc, setModalImageSrc] = useState('');
   const [allImagesLoaded, setAllImagesLoaded] = useState(false);
 
+  useEffect(() => {
+    const savedQuery = localStorage.getItem('lastQuery');
+    if (savedQuery) {
+      setQuery(savedQuery);
+    }
+  }, []);
+
   const handleSubmit = newQuery => {
-    setQuery(newQuery);
     setImages([]);
     setPage(1);
+    setQuery(newQuery);
     setAllImagesLoaded(false);
-    fetchImages(newQuery, 1)
+   
+    fetchImages(newQuery)
       .then(data => {
-        setImages(data.hits);
-        setPage(2);
+        const newImages = data.hits;
+        setImages(newImages);
+        localStorage.setItem('lastQuery', newQuery);
+        
       })
-      .catch(error => console.error(error))
-      .finally(() => {
-        setIsLoading(false);
-      });
+      .catch(error => console.error(error));
   };
 
   const fetchMoreImages = () => {
-    if (allImagesLoaded || isLoading) {
-      return;
-    }
-
     setIsLoading(true);
-
     fetchImages(query, page)
       .then(data => {
-        const newImages = data.hits.filter(image =>
-          !images.some(existingImage => existingImage.id === image.id)
-        );
-
+        const newImages = data.hits;
         if (newImages.length === 0) {
           setAllImagesLoaded(true);
+          setIsLoading(false);
           return;
         }
-
         setImages(prevImages => [...prevImages, ...newImages]);
         setPage(prevPage => prevPage + 1);
       })
@@ -58,6 +57,7 @@ function App() {
         setIsLoading(false);
       });
   };
+  
 
   const openModal = src => {
     setShowModal(true);
@@ -69,9 +69,11 @@ function App() {
   };
 
   useEffect(() => {
-    if (query) {
-      handleSubmit(query);
+    if (query === '') {
+      return;
     }
+
+    fetchMoreImages();
   }, [query]);
 
   return (
